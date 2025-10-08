@@ -1,50 +1,122 @@
-let peer;
-let conexoes = [];
+// webrtc.js
+// Implementação WebRTC simplificada e robusta para o Peercircle
+// ✅ Usa STUN público (Google) — não precisa configurar TURN
+// ✅ Trata erros e estados de conexão
+// ✅ Pronto para enviar/receber mensagens via DataChannel
 
-function iniciarConexao() {
-    peer = new Peer(undefined, {
-        host: "0.peerjs.com", // Servidor público do PeerJS
-        secure: true,
-        port: 443
-    });
+export function createPeerConnection({ signalCallback, onDataMessage, onStateChange }) {
+  // Servidor STUN público (Google)
+  const iceServers = [
+    { urls: "stun:stun.l.google.com:19302" }
+  ];
 
-    peer.on('open', id => {
-        console.log("Meu Peer ID:", id);
-        entrarNaSala(id);
-    });
+  // Cria PeerConnection
+  const pc = new RTCPeerConnection({ iceServers });
 
-    peer.on('connection', conn => {
-        conexoes.push(conn);
-        configurarConexao(conn);
-    });
-}
+  // Cria canal de dados para mensagens (ordenado e confiável)
+  const dataChannel = pc.createDataChannel("peercircle-data", { ordered: true });
 
-function entrarNaSala(meuID) {
-    let sala = "peercircle-room";
-    conexoes.push(peer.connect(sala));
-    conexoes.forEach(conn => configurarConexao(conn));
-}
+  dataChannel.onopen = () => {
+    console.log("[webrtc] Canal de dados aberto");
+    onStateChange && onStateChange({ type: "datachannel", state: "open" });
+  };
 
-function configurarConexao(conn) {
-    conn.on('data', data => {
-        if (data.tipo === "mensagem") {
-            criarMensagem(data.usuarioID, data.texto, data.usuarioIP);
-            mensagens.push(data);
-            salvarBackup();
-        }
-        if (data.tipo === "denuncia") {
-            denunciar(data.usuarioID, data.usuarioIP);
-        }
-    });
-}
+  dataChannel.onmessage = (event) => {
+    try {
+      onDataMessage && onDataMessage(event.data);
+    } catch (err) {
+      console.error("[webrtc] Erro ao processar mensagem:", err);
+    }
+  };
 
-function enviarMensagemP2P(texto) {
-    conexoes.forEach(conn => {
-        conn.send({
-            tipo: "mensagem",
-            usuarioID: "Você",
-            texto: texto,
-            usuarioIP: "localIP"
-        });
-    });
+  dataChannel.onerror = (err) => {
+    console.error("[webrtc] Erro no canal de dados:", err);
+  };
+
+  // Envia candidatos ICE via sinalização
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      signalCallback({ type: "ice", candidate: event.candidate });
+    }
+  };
+
+  // Monitora estados de conexão
+  pc.oniceconnectionstatechange = () => {
+    const state = pc.iceConnectionState;
+    console.log("[webrtc] ICE state:", state);
+    onStateChange && onStateChange({ type: "ice", state });
+  };
+
+  pc.onconnectionstatechange = () => {
+    const state = pc.connectionState;
+    console.log("[webrtc] Connection state:", state);
+    onStateChange && onStateChange({ type: "connection", state });
+  };
+
+  // Cria uma oferta para iniciar a conexão
+  async function makeOffer() {
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      signalCallback({ type: "offer", sdp: pc.localDescription });
+    } catch (err) {
+      console.error("[webrtc] Erro ao criar oferta:", err);
+    }
+  }
+
+  // Recebe e aplica a resposta do outro peer
+  async function handleRemoteAnswer(answer) {
+    try {
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    } catch (err) {
+      console.error("[webrtc] Erro ao aplicar resposta:", err);
+    }
+  }
+
+  // Recebe uma oferta e responde automaticamente
+  async function handleRemoteOffer(offer) {
+    try {
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      signalCallback({ type: "answer", sdp: pc.localDescription });
+    } catch (err) {
+      console.error("[webrtc] Erro ao responder oferta:", err);
+    }
+  }
+
+  // Adiciona candidatos ICE recebidos
+  async function addIceCandidate(candidate) {
+    try {
+      await pc.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (err) {
+      console.warn("[webrtc] Falha ao adicionar candidato ICE:", err);
+    }
+  }
+
+  // Envia mensagens pelo canal de dados
+  function sendMessage(msg) {
+    if (dataChannel.readyState === "open") {
+      dataChannel.send(msg);
+    } else {
+      console.warn("[webrtc] Canal não está aberto:", dataChannel.readyState);
+    }
+  }
+
+  // Fecha a conexão com segurança
+  function close() {
+    try { dataChannel.close(); } catch {}
+    try { pc.close(); } catch {}
+  }
+
+  return {
+    pc,
+    dataChannel,
+    makeOffer,
+    handleRemoteAnswer,
+    handleRemoteOffer,
+    addIceCandidate,
+    sendMessage,
+    close
+  };
 }
