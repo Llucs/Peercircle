@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>P2P Chat</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="login">
+  <h2>P2P Chat</h2>
+  <input id="username" placeholder="Seu nome">
+  <button onclick="enter()">Entrar</button>
+</div>
+
+<div id="menu" class="hidden">
+  <button onclick="createRoom()">Criar sala</button>
+  <input id="roomCodeInput" placeholder="Código da sala">
+  <button onclick="joinRoom()">Entrar na sala</button>
+</div>
+
+<div id="chat" class="hidden">
+  <h3 id="roomTitle"></h3>
+  <div id="messages"></div>
+  <input id="msgInput" placeholder="Mensagem">
+  <button onclick="sendMessage()">Enviar</button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
