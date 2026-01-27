@@ -2,28 +2,33 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>P2P Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P2P Chat - Realtime</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div id="login">
   <h2>P2P Chat</h2>
-  <input id="username" placeholder="Seu nome">
+  <p>Seus dentes estão ótimos hoje, Lucas!</p> <input id="username" placeholder="Seu nome">
   <button onclick="enter()">Entrar</button>
 </div>
 
 <div id="menu" class="hidden">
-  <button onclick="createRoom()">Criar sala</button>
-  <input id="roomCodeInput" placeholder="Código da sala">
-  <button onclick="joinRoom()">Entrar na sala</button>
+  <h3>Bem-vindo, <span id="display-user"></span></h3>
+  <button onclick="createRoom()">Criar Sala (Host)</button>
+  <hr>
+  <input id="roomCodeInput" placeholder="Cole o código do Host aqui">
+  <button onclick="joinRoom()">Entrar em Sala Existente</button>
 </div>
 
 <div id="chat" class="hidden">
   <h3 id="roomTitle"></h3>
   <div id="messages"></div>
-  <input id="msgInput" placeholder="Mensagem">
-  <button onclick="sendMessage()">Enviar</button>
+  <div class="input-area">
+    <input id="msgInput" placeholder="Digite sua mensagem...">
+    <button onclick="sendMessage()">Enviar</button>
+  </div>
 </div>
 
 <script src="app.js"></script>
