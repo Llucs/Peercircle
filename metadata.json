@@ -1,0 +1,8 @@
+{
+  "name": "P2P Flash Chat",
+  "description": "A serverless, peer-to-peer direct messaging application using WebRTC for instant communication and Gemini for AI-powered chat assistance.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
